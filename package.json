@@ -1,0 +1,11 @@
+{
+  "name": "vs-studio-code-test",
+  "version": "0.0.0",
+  "description": "Testing Microsofts New Visual Studio Code on OSx",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "BSD"
+}
