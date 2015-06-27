@@ -1,16 +1,11 @@
-var geoip = require('geoip-lite');
-var countrynames = require('countrynames');
+var geoip 			= require('geoip-lite'),
+	countrynames 	= require('countrynames'),
+	mongo			= require('mongodb'),
+	config			= require('config.json')('./settings.json');
 
-var addrs = ["24.56.254.31",
-			"139.194.193.125",
-			"208.54.37.234",
-			"2.25.6.244",
-			"50.38.54.176",
-			"73.25.30.62",
-			"82.110.64.14",
-			"24.173.36.194",
-			"101.170.42.141",
-			"74.177.96.226"];
+var _dbServer 		= new mongo.Server(config.mongodb.host, config.mongodb.port),
+	_db 			= new mongo.Db(config.mongodb.db, _dbServer);
+
 			
 String.prototype.toTitleCase = function() {
   var i, j, str, lowers, uppers;
@@ -37,7 +32,96 @@ String.prototype.toTitleCase = function() {
   return str;
 }
 
+function updateQuestion(collection, question) {
+	
+	var geo = geoip.lookup(question.ipaddr);
+						
+	var _location = "";
+	
+	if(!geo) {
+		return;
+	}
+	
+	if(geo.country == "US") {
+		if(!geo.city) {
+			_location = "United States";
+		} else {
+			_location = geo.city.toTitleCase() + ", " + geo.region;
+		}
+	} else {
+		if(geo.city) {
+			_location = geo.city.toTitleCase() + ", " + countrynames.getName(geo.country).toTitleCase();
+		} else {
+			_location = countrynames.getName(geo.country).toTitleCase();
+		}
+	}
+					
+	console.log(_location);
+	
+	
+    var query 	= {_id:question._id};
+    var update 	= {$set: {loc:_location, locationString:_location}};
+	
+    collection.update(query, update, {safe:true}, function(err, result) {
+        if(err) {
+			console.log('error updating question.');
+		} else {
+			console.log('question updated');
+		}
+    });
 
+	
+};
+
+function listQuestions(db) {
+
+	db.collection('questions', function(err, questions) {
+		
+		if(!err) {
+			console.log('listing questions ... ');
+			
+			var cursor = questions.find({type:'question'}).sort({created:-1}).limit(4);
+			
+			cursor.each(function(err, question) {
+				
+				if(question) {
+					
+					if(!question.loc || !question.locationString) {
+						console.log('no question');
+						return;
+					}
+				
+					if(question.mobileType === 'ios') {
+						console.log('*** mobile question location:', question.locationString);
+						return;
+					} else {
+						console.log('question location:', question.locationString, question.ipaddr);
+					}	
+					
+					updateQuestion(questions, question);
+
+
+				} else {
+					process.exit(0);
+				}
+			});
+			
+		}
+		
+	});
+	
+};
+
+
+_db.open(function(err, db) {
+	
+	if(!err) {
+		console.log('Database opened');
+		listQuestions(db);
+	}
+});
+
+/*
 for(var x = 0; x < addrs.length; x++) {
 	var geo = geoip.lookup(addrs[x]);
 	
@@ -51,4 +135,4 @@ for(var x = 0; x < addrs.length; x++) {
 	} else {
 		console.log(geo.city.toTitleCase(),",",countrynames.getName(geo.country).toTitleCase());
 	}
-}
+}*/

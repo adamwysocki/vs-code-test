@@ -10,6 +10,9 @@
   "license": "BSD",
   "dependencies": {
     "geoip-lite": "~1.1.6",
-    "countrynames": "~0.1.1"
+    "countrynames": "~0.1.1",
+    "mongo": "~0.1.0",
+    "mongodb": "~2.0.31",
+    "config.json": "0.0.4"
   }
 }
